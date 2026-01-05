@@ -42,7 +42,6 @@ const MainTabNavigator = ({ onLogout }: { onLogout: () => void }) => {
           <Tab.Screen name="Игра" component={GameScreen} />
           <Tab.Screen name="Прогресс" component={ProgressScreen} />
           <Tab.Screen name="Правила" component={RulesScreen} />
-          {/* Передаем функцию выхода в экран настроек */}
           <Tab.Screen name="Настройки">
             {props => <SettingsScreen {...props} onLogout={onLogout} />}
           </Tab.Screen>
@@ -55,8 +54,8 @@ export default function App() {
 
   const checkSession = useCallback(async () => {
       try {
-        const session = await AsyncStorage.getItem('user-session');
-        setIsLoggedIn(session === 'active');
+        const session = await AsyncStorage.getItem('user-session-profile'); // Проверяем новый ключ
+        setIsLoggedIn(session !== null); // Если есть данные, то залогинен
       } catch (e) {
         setIsLoggedIn(false);
       }
@@ -66,7 +65,6 @@ export default function App() {
     checkSession();
   }, [checkSession]);
 
-  // --- ГЛАВНЫЕ ИСПРАВЛЕНИЯ ---
   const handleLoginSuccess = useCallback(() => {
       setIsLoggedIn(true);
   }, []);

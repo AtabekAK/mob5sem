@@ -7,21 +7,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { User } from '../types/types';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useIsFocused } from '@react-navigation/native';
 
 // Добавляем onLogout в пропсы
 const SettingsScreen = ({ onLogout }: { onLogout: () => void }) => {
     const [user, setUser] = useState<User | null>(null);
     const [resetModalVisible, setResetModalVisible] = useState(false);
+    const isFocused = useIsFocused();
 
+    // Загружаем данные пользователя при открытии экрана или при возвращении на него
     useEffect(() => {
         const loadUserData = async () => {
-            const userDataString = await AsyncStorage.getItem('user-profile');
+            // --- ИЗМЕНЕНИЕ: Читаем данные из активной сессии ---
+            const userDataString = await AsyncStorage.getItem('user-session-profile');
             if (userDataString) {
                 setUser(JSON.parse(userDataString));
             }
         };
-        loadUserData();
-    }, []);
+
+        if (isFocused) {
+            loadUserData();
+        }
+    }, [isFocused]);
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,25 +45,38 @@ const SettingsScreen = ({ onLogout }: { onLogout: () => void }) => {
         if (!result.canceled && user) {
             const newUser = { ...user, avatarUri: result.assets[0].uri };
             setUser(newUser);
-            await AsyncStorage.setItem('user-profile', JSON.stringify(newUser));
+
+            // --- ИЗМЕНЕНИЕ: Обновляем данные и в списке пользователей, и в сессии ---
+            await AsyncStorage.setItem('user-session-profile', JSON.stringify(newUser));
+
+            const usersDataString = await AsyncStorage.getItem('users-list');
+            let users = usersDataString ? JSON.parse(usersDataString) : [];
+            const userIndex = users.findIndex((u: User) => u.username === newUser.username);
+
+            if (userIndex > -1) {
+                // В списке пользователей пароль сохраняем, если он был
+                users[userIndex] = { ...users[userIndex], avatarUri: newUser.avatarUri };
+                await AsyncStorage.setItem('users-list', JSON.stringify(users));
+            }
         }
     };
 
     const handleLogout = async () => {
-        await AsyncStorage.removeItem('user-session');
-        // Вызываем функцию из App.tsx, чтобы он обновил интерфейс
+        // --- ИЗМЕНЕНИЕ: Удаляем сессию, а не только флаг ---
+        await AsyncStorage.removeItem('user-session-profile');
         onLogout();
     };
     
     const handleResetProgress = async () => {
+        // Логика сброса прогресса остается прежней, так как она не зависит от профиля
         await AsyncStorage.removeItem('habits');
-        await AsyncStorage.removeItem('playerProfile');
+        await AsyncStorage.removeItem('playerProfile'); // Если эта сущность еще используется для очков
         setResetModalVisible(false);
         Alert.alert("Прогресс сброшен", "Все ваши привычки и очки удалены.");
     };
     
     if (!user) {
-        return <SafeAreaView style={styles.safeArea}><ActivityIndicator/></SafeAreaView>;
+        return <SafeAreaView style={[styles.safeArea, {justifyContent: 'center'}]}><ActivityIndicator size="large"/></SafeAreaView>;
     }
 
     return (
