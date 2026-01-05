@@ -8,6 +8,11 @@ import { HabitCompletion } from '../types/types';
  * @returns {{ currentStreak: number, bestStreak: number }} - Объект с текущим и лучшим стриком.
  */
 export const calculateStreaks = (history: HabitCompletion[]): { currentStreak: number; bestStreak: number } => {
+  // --- ИСПРАВЛЕНИЕ: Проверяем, что history - это массив ---
+  if (!Array.isArray(history)) {
+    return { currentStreak: 0, bestStreak: 0 };
+  }
+
   const completedDates = history
     .filter(h => h.completed)
     .map(h => h.date)
