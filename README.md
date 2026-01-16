@@ -72,7 +72,7 @@
 
 ### 2. Клонирование репозитория
 ```bash
-git clone [вставьте_ссылку_на_ваш_репозиторий]
+git clone https://github.com/AtabekAK/mob5sem.git
 cd habit-tracker-game
 ```
 
